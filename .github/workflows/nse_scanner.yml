@@ -1,11 +1,14 @@
-name: NSE Swing Trading Bot
+name: NSE AI Swing Scanner
 
 on:
+  workflow_dispatch:
   schedule:
     - cron: '40 12 * * 1-5'
 
 jobs:
-  run-bot:
+
+  run-ai:
+
     runs-on: ubuntu-latest
 
     steps:
@@ -18,12 +21,11 @@ jobs:
       with:
         python-version: '3.11'
 
-    - name: Install dependencies
-      run: |
-        pip install -r requirements.txt
+    - name: Install libraries
+      run: pip install -r requirements.txt
 
-    - name: Run Trading AI
-      run: |
-        python download_data.py
-        python train_model.py
-        python scanner_nse.py
+    - name: Train model
+      run: python train_model.py
+
+    - name: Run scanner
+      run: python scanner_nse_fast.py
