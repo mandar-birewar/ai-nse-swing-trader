@@ -13,24 +13,25 @@ features = ["rsi","macd","ma20","ma50","volume"]
 
 signals = []
 
-
 def scan_stock(stock):
 
     try:
 
         df = yf.download(stock, period="6mo", progress=False)
 
-        if df.empty:
+        if df is None or df.empty:
             return None
 
         df = add_indicators(df)
 
         df = df.dropna()
 
+        if len(df) < 30:
+            return None
+
         latest = df.tail(1)
 
         pred = model.predict(latest[features])[0]
-
         prob = model.predict_proba(latest[features])[0][1]
 
         if pred == 1:
@@ -43,38 +44,43 @@ def scan_stock(stock):
 
             confidence = round(prob*100,2)
 
-            return (stock, entry, target, stop, confidence)
+            return (stock,entry,target,stop,confidence)
 
     except:
         return None
 
 
-with ThreadPoolExecutor(max_workers=20) as executor:
+try:
 
-    results = executor.map(scan_stock, stocks)
+    with ThreadPoolExecutor(max_workers=20) as executor:
+        results = executor.map(scan_stock, stocks)
+
+    for r in results:
+        if r:
+            signals.append(r)
+
+except:
+    pass
 
 
-for r in results:
-    if r:
-        signals.append(r)
-
-
-signals = sorted(signals, key=lambda x: x[4], reverse=True)
+signals = sorted(signals,key=lambda x:x[4],reverse=True)
 
 top = signals[:5]
 
 
-if len(top)==0:
+try:
 
-    send_message("AI Scanner Completed\nNo swing trades today")
+    if len(top)==0:
 
-else:
+        send_message("AI Scanner Completed\nNo swing trades today")
 
-    message="🔥 AI Swing Trade Signals 🔥\n\n"
+    else:
 
-    for s in top:
+        message="🔥 AI Swing Trade Signals 🔥\n\n"
 
-        message += f"""
+        for s in top:
+
+            message += f"""
 {s[0]}
 Buy: {s[1]}
 Target: {s[2]}
@@ -83,7 +89,9 @@ Confidence: {s[4]}%
 
 """
 
-    send_message(message)
+        send_message(message)
 
+except:
+    print("Telegram message failed")
 
-print("Scan finished")
+print("Scanner finished")
