@@ -7,6 +7,8 @@ from sklearn.model_selection import train_test_split
 
 from indicators import add_indicators
 
+os.makedirs("data", exist_ok=True)
+
 dataset = []
 
 for file in os.listdir("data"):
