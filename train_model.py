@@ -4,11 +4,14 @@ import joblib
 from sklearn.ensemble import RandomForestClassifier
 from indicators import add_indicators
 
+# read stock list
 stocks = open("stocks.txt").read().splitlines()
 
 dataset = []
 
-for stock in stocks[:150]:   # limit training for speed
+print("Downloading training data...")
+
+for stock in stocks[:120]:   # limit to keep workflow fast
 
     try:
         df = yf.download(stock, period="1y", progress=False)
@@ -23,44 +26,48 @@ for stock in stocks[:150]:   # limit training for speed
 
         df = df.dropna()
 
-        if len(df) < 50:
+        if len(df) < 40:
             continue
 
         dataset.append(df)
 
-    except:
-        continue
+        print("Loaded:", stock)
 
+    except Exception as e:
+        print("Skipped:", stock)
 
-# if dataset empty create dummy data so workflow never fails
-if len(dataset) == 0:
+# ---------- SAFE CONCAT ----------
+if len(dataset) > 0:
 
-    print("No training data found, using fallback dataset")
-
-    dummy = pd.DataFrame({
-        "rsi":[50,60,40,55],
-        "macd":[0.1,0.2,-0.1,0.05],
-        "ma20":[100,102,98,101],
-        "ma50":[99,101,97,100],
-        "volume":[1000,1200,900,1100],
-        "target":[1,0,1,0]
-    })
-
-    data = dummy
+    print("Combining training data...")
+    data = pd.concat(dataset, ignore_index=True)
 
 else:
-    data = pd.concat(dataset)
 
+    print("No training data collected. Using fallback dataset.")
 
+    data = pd.DataFrame({
+        "rsi":[50,60,40,55,45,65],
+        "macd":[0.1,0.2,-0.1,0.05,-0.05,0.15],
+        "ma20":[100,102,98,101,97,104],
+        "ma50":[99,101,97,100,96,103],
+        "volume":[1000,1200,900,1100,950,1300],
+        "target":[1,0,1,0,1,0]
+    })
+
+# ---------- TRAIN MODEL ----------
 features = ["rsi","macd","ma20","ma50","volume"]
 
 X = data[features]
 y = data["target"]
 
-model = RandomForestClassifier(n_estimators=200, random_state=42)
+model = RandomForestClassifier(
+    n_estimators=200,
+    random_state=42
+)
 
 model.fit(X,y)
 
 joblib.dump(model,"model.pkl")
 
-print("Model training finished")
+print("Model trained successfully")
