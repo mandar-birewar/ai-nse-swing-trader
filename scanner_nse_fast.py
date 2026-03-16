@@ -7,9 +7,9 @@ from telegram_alert import send_message
 
 model = joblib.load("model.pkl")
 
-features = ["rsi","macd","ma20","ma50","volume"]
-
 stocks = open("stocks.txt").read().splitlines()
+
+features = ["rsi","macd","ma20","ma50","volume"]
 
 signals = []
 
@@ -53,8 +53,8 @@ with ThreadPoolExecutor(max_workers=20) as executor:
 
     results = executor.map(scan_stock, stocks)
 
-for r in results:
 
+for r in results:
     if r:
         signals.append(r)
 
@@ -63,9 +63,10 @@ signals = sorted(signals, key=lambda x: x[4], reverse=True)
 
 top = signals[:5]
 
+
 if len(top)==0:
 
-    send_message("No swing trades today.")
+    send_message("AI Scanner Completed\nNo swing trades today")
 
 else:
 
@@ -79,8 +80,10 @@ Buy: {s[1]}
 Target: {s[2]}
 Stop: {s[3]}
 Confidence: {s[4]}%
+
 """
 
     send_message(message)
+
 
 print("Scan finished")
